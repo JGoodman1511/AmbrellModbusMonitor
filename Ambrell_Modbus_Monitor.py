@@ -791,7 +791,7 @@ class App(customtkinter.CTk):
 
 		if self.switch_var.get() == "on":	
 
-			self.textbox.insert('end','\nWriting to file...')
+			self.textbox.insert('end','\nWriting file ' + (resource_path('logs\\Ambrell_Modbus_Log '+ writeTime + '.csv')))
 
 			headerList = (self.timeHead + self.status_list + self.io_list + self.sp_list + self.pwrout_list +
 					 	 self.vltout_list + self.match_list + self.freq_list + self.heattime_list +
@@ -801,16 +801,16 @@ class App(customtkinter.CTk):
 			now = datetime.datetime.now()
 			writeTime = now.strftime('%Y_%m_%d %H-%M-%S')
 
-			#try:
-			with open(resource_path('logs\\Ambrell_Modbus_Log '+ writeTime + '.csv'),'w') as csvfile:
-				writer = csv.writer(csvfile)
-				writer.writerow(headerList)
-				for log in range(0,len(self.logList),self.n):
-					writer.writerow(self.logList[log:log+self.n])
-					#del self.logList[0:self.n]
-				self.textbox.insert('end', '\nLogged to <Ambrell_Modbus_Log'+ writeTime + '.csv>')
+			try:
+				with open(resource_path('logs\\Ambrell_Modbus_Log '+ writeTime + '.csv'),'w') as csvfile:
+					writer = csv.writer(csvfile)
+					writer.writerow(headerList)
+					for log in range(0,len(self.logList),self.n):
+						writer.writerow(self.logList[log:log+self.n])
+						#del self.logList[0:self.n]
+					self.textbox.insert('end', '\nLogged to <Ambrell_Modbus_Log'+ writeTime + '.csv>')
 
-			#except: self.textbox.insert('end', '\nCould not write to file.')
+			except: self.textbox.insert('end', '\nCould not write to file.')
 
 		else: pass
 		return
