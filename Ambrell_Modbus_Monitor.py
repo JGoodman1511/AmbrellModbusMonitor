@@ -811,7 +811,7 @@ class App(customtkinter.CTk):
 					for log in range(0,len(self.logList),self.n):
 						writer.writerow(self.logList[log:log+self.n])
 						#del self.logList[0:self.n]
-					self.textbox.insert('end', '\nLogged to <Ambrell_Modbus_Log'+ writeTime + '.csv>')
+					self.textbox.insert('end', '\nLogged to ' + logDirectory + '\\<Ambrell_Modbus_Log'+ writeTime + '.csv>')
 
 			except: self.textbox.insert('end', '\nCould not write to file.')
 
