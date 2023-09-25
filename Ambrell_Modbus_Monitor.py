@@ -117,7 +117,7 @@ readOptions = ['Status Signals','I/O','Setpoint','Power Output',       # WHEN AD
     			'Cable Current', 'Last Cycle Time']
 
 listCOM = findCOM()
-bauds = ['9600']								#'14400','19200','28800','38400','57600','115200' DISCONNECT INSTRUMENT
+bauds = ['9600','14400','19200','28800','38400']								#'57600','115200' DISCONNECT INSTRUMENT
 modType = ['MODBUS-N','MODBUS-E']
 addrList = listAddr()
 ####################################################################
@@ -165,9 +165,30 @@ class ToplevelWindow(customtkinter.CTkToplevel):
 		self.modGet = self.modMenu.get()
 		self.addrGet = self.addrMenu.get()
 		sendInstrumentData()
-		app.deviceButton.configure(text_color="lime green")
-		self.destroy()
-		return 
+		app.textbox.insert('end', '\nConnecting to Modbus...')
+
+		try:
+				app.instrument = minimalmodbus.Instrument(app.com,int(app.addr),debug=False)  # port name, slave address (in decimal)
+				app.instrument.serial.port = app.com
+				app.instrument.serial.baudrate = int(app.baud)
+				app.instrument.serial.bytesize = 8
+				app.instrument.serial.parity   = serial.PARITY_NONE	#setParity()
+				app.instrument.serial.stopbits = 2	#setStopBits()
+				app.instrument.serial.timeout  = 0.5      			#Default 0.05                 #seconds #default 0.05
+				app.instrument.serial.write_timeout = 2.0  			#Default 2
+
+				app.instrument.address    =  int(app.addr)                       # this is the slave address number
+				app.instrument.mode = minimalmodbus.MODE_RTU            	     # rtu or ascii mode
+				app.instrument.clear_buffers_before_each_transaction = True
+				app.instrument.close_port_after_each_call = True
+
+				app.instrument.read_register(30)
+				app.deviceButton.configure(text_color="lime green")
+				app.textbox.insert('end', '\nModbus device connected.')
+				self.destroy()
+		except: 
+			app.textbox.insert('end', '\nCould not connect to Modbus device.')
+			self.destroy()	
 
 
 class MyCheckboxFrame(customtkinter.CTkFrame):
@@ -227,7 +248,7 @@ class App(customtkinter.CTk):
 		self.fault_list = []
 		self.current_list = []
 
-		self.textbox = customtkinter.CTkTextbox(master=self, width=500, corner_radius=0, font=("Segoe UI", 15))
+		self.textbox = customtkinter.CTkTextbox(master=self, width=500, corner_radius=0, font=("Segoe UI", 16))
 		self.textbox.grid(row=0, column=1, rowspan=8, sticky="nsew")
 
 		self.checkbox_frame_1 = MyCheckboxFrame(self, values = readOptions)
@@ -236,21 +257,21 @@ class App(customtkinter.CTk):
 		self.entry = customtkinter.CTkEntry(self, font=("Segoe UI", 15), placeholder_text="Sample Rate (sec)")
 		self.entry.grid(row=4,column=0,padx=5,pady=(10,0), sticky='nsew')
 
-		self.runButton = customtkinter.CTkButton(self, text="Read", font=("Segoe UI", 15), height= 40, command=self.button_read)
+		self.runButton = customtkinter.CTkButton(self, text="Read", font=("Segoe UI", 17), height= 40, command=self.button_read)
 		self.runButton.grid(row=5,column=0,padx=5,pady=(10,10), sticky='ew')
 
-		self.stopButton = customtkinter.CTkButton(self, text="Stop [ESC]", font=("Segoe UI", 15), height= 40, fg_color='red', hover_color = 'dark red', state="disabled", command=self.button_stop)
+		self.stopButton = customtkinter.CTkButton(self, text="Stop [ESC]", font=("Segoe UI", 17), height= 40, fg_color='red', hover_color = 'dark red', state="disabled", command=self.button_stop)
 		self.stopButton.grid(row=6,column=0,padx=5,pady=(0,10), sticky='ew')
 
-		self.deviceButton = customtkinter.CTkButton(self, text="Connect Device", font=("Segoe UI", 15), height=40, command=self.open_toplevel)
+		self.deviceButton = customtkinter.CTkButton(self, text="Connect Device", font=("Segoe UI", 17), height=40, command=self.open_toplevel)
 		self.deviceButton.grid(row=0,column=0,padx=5,pady=5, sticky='ew')
 
 		self.switch_var = customtkinter.StringVar(value="on")
-		self.loggingSwitch = customtkinter.CTkSwitch(self, text="Enable Logging", font=("Segoe UI",15), variable=self.switch_var, onvalue="on", offvalue="off")
+		self.loggingSwitch = customtkinter.CTkSwitch(self, text="Enable Logging", font=("Segoe UI",16), variable=self.switch_var, onvalue="on", offvalue="off")
 		self.loggingSwitch.grid(row=2,column=0,padx=5,pady=(0,10), sticky='ew')
 
 		self.readToggleVar = customtkinter.StringVar(value="continuous")
-		self.readToggle = customtkinter.CTkSwitch(self, text="Continuous Mode", font=("Segoe UI",15), variable=self.readToggleVar, command=self.switch_event, onvalue="continuous", offvalue = "single")
+		self.readToggle = customtkinter.CTkSwitch(self, text="Continuous Mode", font=("Segoe UI",16), variable=self.readToggleVar, command=self.switch_event, onvalue="continuous", offvalue = "single")
 		self.readToggle.grid(row=1,column=0,padx=5,pady=(0,10), sticky='ew')
 
 
@@ -276,7 +297,7 @@ class App(customtkinter.CTk):
 		self.textbox.delete("0.0", "end") 
 		self.checked_checkboxes = []
 		self.logList = []
-		self.textbox.insert('end', 'Connecting to MODBUS...')
+		self.textbox.insert('end', 'Connecting to Modbus...')
 
 
 		for checkbox in self.checkbox_frame_1.checkboxes:
@@ -347,8 +368,9 @@ class App(customtkinter.CTk):
 				self.mode = MSB(self.instrument.read_register(30))
 				self.celsius = LSB(self.instrument.read_register(32))
 
+
 			except:
-				self.textbox.insert('end', '\nCould not connect to MODBUS device.')
+				self.textbox.insert('end', '\nCould not connect to Modbus device.')
 				self.runButton.configure(state="normal")
 				self.stopButton.configure(state="disabled")
 				for checkbox in self.checkbox_frame_1.checkboxes:
@@ -408,6 +430,15 @@ class App(customtkinter.CTk):
 					self.status_n = len(self.status_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read STATUS SIGNALS')
+					self.status_list = ['Ready','Heat','Limit','Fault','ESTOP','Door','Wkhd Cover']
+					self.status_n = len(self.status_list)
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
 			else: pass
 
 
@@ -454,6 +485,15 @@ class App(customtkinter.CTk):
 					self.io_n = len(self.io_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read I/O SIGNALS')
+					self.io_list = ['DOUT1','DOUT2','DOUT3','DOUT4','DIN1','DIN2','AN:IN2']
+					self.io_n = len(self.io_list)
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
 			else: pass
 
 
@@ -479,6 +519,9 @@ class App(customtkinter.CTk):
 						self.sp_n = len(self.sp_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read SETPOINT')
+					self.sp_list = ['Power Set']
+					self.sp_n = len(self.sp_list)
+					self.logList.append('NULL')
 			else: pass
 
 			if 'Power Output' in self.checked_checkboxes:
@@ -492,6 +535,9 @@ class App(customtkinter.CTk):
 					self.pwrout_n = len(self.pwrout_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read POWER OUTPUT')
+					self.pwrout_list = ['Power Out']
+					self.pwrout_n = len(self.pwrout_list)
+					self.logList.append('NULL')					
 			else: pass
 
 			if 'Voltage Output' in self.checked_checkboxes:
@@ -505,6 +551,9 @@ class App(customtkinter.CTk):
 					self.vltout_n = len(self.vltout_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read VOLTAGE OUTPUT')
+					self.vltout_list = ['Voltage Out']
+					self.vltout_n = len(self.vltout_list)
+					self.logList.append('NULL')
 			else: pass
 			
 			if 'Percent Match' in self.checked_checkboxes:
@@ -518,6 +567,9 @@ class App(customtkinter.CTk):
 					self.match_n = len(self.match_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read PERCENT MATCH')
+					self.match_list = ['Match']
+					self.match_n = len(self.match_list)
+					self.logList.append('NULL')
 			else: pass
 			
 			if 'Frequency' in self.checked_checkboxes:
@@ -531,6 +583,9 @@ class App(customtkinter.CTk):
 					self.freq_n = len(self.freq_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read FREQUENCY')
+					self.freq_list = ['Frequency']
+					self.freq_n = len(self.freq_list)
+					self.logList.append('NULL')				
 			else: pass
 			
 			if 'Heat On Timer' in self.checked_checkboxes:
@@ -549,6 +604,9 @@ class App(customtkinter.CTk):
 					self.heattime_n = len(self.heattime_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read HEAT ON TIMER')
+					self.heattime_list = ['Heat Time']
+					self.heattime_n = len(self.heattime_list)
+					self.logList.append('NULL')
 			else: pass
 			
 
@@ -557,12 +615,12 @@ class App(customtkinter.CTk):
 					#celsius = LSB(self.instrument.read_register(32))
 					if self.celsius == 0:
 						self.textbox.insert('end', '\nIGBT Temp (F): ')
-						self.igbttempfSig = decodeReg(instrument.read_register(17))
+						self.igbttempfSig = decodeReg(self.instrument.read_register(17))
 						self.textbox.insert('end', self.igbttempfSig)
 						self.logList.append(self.igbttempfSig)
 
 						self.textbox.insert('end', '\nAmbient Temp (F): ')
-						self.airtempfSig = decodeReg(regInt=self.instrument.read_register(21))
+						self.airtempfSig = decodeReg(self.instrument.read_register(21))
 						self.textbox.insert('end', self.airtempfSig)
 						self.logList.append(self.airtempfSig)
 
@@ -584,6 +642,10 @@ class App(customtkinter.CTk):
 						self.temps_n = len(self.temps_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read TEMPERATURE')
+					self.temps_list = ['IGBT Temp','Air Temp']
+					self.temps_n = len(self.temps_list)
+					self.logList.append('NULL')
+					self.logList.append('NULL')
 			else: pass
 			
 
@@ -598,6 +660,9 @@ class App(customtkinter.CTk):
 					self.startfreq_n = len(self.startfreq_list)
 				except:
 					self.textbox.insert('end', '\nFailed to read START FREQUENCY')
+					self.startfreq_list = ['Start Freq']
+					self.logList.append('NULL')
+					self.startfreq_n = len(self.startfreq_list)
 			else: pass
 			
 
@@ -723,6 +788,32 @@ class App(customtkinter.CTk):
 
 					self.fault_n = len(self.fault_list)
 				except:
+					self.fault_list = ['Wrkd Cap Flow Fault', 'Wrkd Coil Flow Fault', 'Internal Flow Fault',     #update list if number of fault signals change DO NOT CHANGE ORDER
+						'Missing Phase Detect', 'Ground Fault', 'Over Maximum Power Fault', 
+						'Frequency Low Limit', 'Frequency High Limit', 'Workhead Maximum Volts Limit',
+						'Maximum Match Limit', 'Output Max Power Limit', 'Output Max Current Fault',
+						'Output Max Bus Cap Fault', 'IGBT Max Temp Limit', 'IGBT Max Delta Temp Limit',
+						'IGBT Temp Fault', 'Max Delta Temp Fault', 'DOUT Overcurrent Fault', 'Alarm Tripped Limit']
+					self.fault_n = len(self.fault_list)
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
+					self.logList.append('NULL')
 					self.textbox.insert('end', '\nFailed to read FAULTS')
 			else: pass
 			
@@ -737,6 +828,9 @@ class App(customtkinter.CTk):
 					self.current_list = ['Cable Current']
 					self.current_n = len(self.current_list) 
 				except:
+					self.current_list = ['Cable Current']
+					self.current_n = len(self.current_list) 
+					self.logList.append('NULL')
 					self.textbox.insert('end', '\nFailed to read CABLE CURRENT')
 			else: pass
 			
