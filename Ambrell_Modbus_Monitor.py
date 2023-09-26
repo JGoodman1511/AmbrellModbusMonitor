@@ -43,14 +43,14 @@ def listAddr():
 	return output
 
 def setParity():
-	if 'MODBUS-N' in modGet:
-		mod = 'serial.PARITY_NONE'
+	if app.toplevel_window.modGet == 'MODBUS-N':
+		mod = serial.PARITY_NONE
 	else:
-		mod = 'serial.PARITY_EVEN'
+		mod = serial.PARITY_EVEN
 	return mod
 
 def setStopBits():
-	if 'MODBUS-N' in modGet:
+	if app.toplevel_window.modGet == 'MODBUS-N':
 		sb = 2
 	else:
 		sb = 1
@@ -168,24 +168,24 @@ class ToplevelWindow(customtkinter.CTkToplevel):
 		app.textbox.insert('end', '\nConnecting to Modbus...')
 
 		try:
-				app.instrument = minimalmodbus.Instrument(app.com,int(app.addr),debug=False)  # port name, slave address (in decimal)
-				app.instrument.serial.port = app.com
-				app.instrument.serial.baudrate = int(app.baud)
-				app.instrument.serial.bytesize = 8
-				app.instrument.serial.parity   = serial.PARITY_NONE	#setParity()
-				app.instrument.serial.stopbits = 2	#setStopBits()
-				app.instrument.serial.timeout  = 0.5      			#Default 0.05                 #seconds #default 0.05
-				app.instrument.serial.write_timeout = 2.0  			#Default 2
+			app.instrument = minimalmodbus.Instrument(app.com,int(app.addr),debug=False)  # port name, slave address (in decimal)
+			app.instrument.serial.port = app.com
+			app.instrument.serial.baudrate = int(app.baud)
+			app.instrument.serial.bytesize = 8
+			app.instrument.serial.parity   = setParity()
+			app.instrument.serial.stopbits = setStopBits()
+			app.instrument.serial.timeout  = 0.5      			#Default 0.05                 #seconds #default 0.05
+			app.instrument.serial.write_timeout = 2.0  			#Default 2
 
-				app.instrument.address    =  int(app.addr)                       # this is the slave address number
-				app.instrument.mode = minimalmodbus.MODE_RTU            	     # rtu or ascii mode
-				app.instrument.clear_buffers_before_each_transaction = True
-				app.instrument.close_port_after_each_call = True
+			app.instrument.address    =  int(app.addr)                       # this is the slave address number
+			app.instrument.mode = minimalmodbus.MODE_RTU            	     # rtu or ascii mode
+			app.instrument.clear_buffers_before_each_transaction = True
+			app.instrument.close_port_after_each_call = True
 
-				app.instrument.read_register(30)
-				app.deviceButton.configure(text_color="lime green")
-				app.textbox.insert('end', '\nModbus device connected.')
-				self.destroy()
+			app.instrument.read_register(30)
+			app.deviceButton.configure(text_color="lime green")
+			app.textbox.insert('end', '\nModbus device connected.')
+			self.destroy()
 		except: 
 			app.textbox.insert('end', '\nCould not connect to Modbus device.')
 			self.destroy()	
@@ -354,8 +354,8 @@ class App(customtkinter.CTk):
 				self.instrument.serial.port = self.com
 				self.instrument.serial.baudrate = int(self.baud)
 				self.instrument.serial.bytesize = 8
-				self.instrument.serial.parity   = serial.PARITY_NONE	#setParity()
-				self.instrument.serial.stopbits = 2	#setStopBits()
+				self.instrument.serial.parity   = setParity()
+				self.instrument.serial.stopbits = setStopBits()
 				self.instrument.serial.timeout  = 0.5      			#Default 0.05                 #seconds #default 0.05
 				self.instrument.serial.write_timeout = 2.0  			#Default 2
 
